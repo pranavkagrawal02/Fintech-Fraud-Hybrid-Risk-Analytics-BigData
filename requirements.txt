@@ -1,0 +1,9 @@
+# Python libraries used by the scripts (install with: pip3 install --user -r requirements.txt)
+# NOTE: pyspark is NOT listed on purpose - the lab already has Spark. Do not pip-install it there.
+pymongo>=4.0
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+streamlit

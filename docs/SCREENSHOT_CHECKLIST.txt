@@ -1,0 +1,115 @@
+# Screenshot Checklist (26 figures)
+
+The report template (report/Assignment2_Report_Template.docx) has one dashed box per figure with the same number.
+Take the screenshots **in this order, in one lab session**, then paste them into the report offline.
+
+Tips:
+- Make the terminal font large and include the command line you typed in the screenshot.
+- Figure 2 should be taken at the **start** (quota consumed ~0m) - it proves you used the lab environment.
+- Figures 5 is taken on your laptop. Figures 1, 24-26 are diagrams/charts (outputs in outputs/).
+- If a command prints a lot, scroll and take 2 screenshots; paste both in the same box.
+
+
+[ ] FIGURE 1  (report section 2) - Architecture diagram of the hybrid MongoDB + Spark solution
+      Command/source: Draw it yourself in draw.io / PowerPoint (boxes: Kaggle CSV -> prep script -> JSONL -> MongoDB -> Aggregation | Spark via Mongo-Spark connector -> MLlib -> fraud_predictions in MongoDB -> Dashboard).
+      Capture       : Whole diagram, readable text.
+
+[ ] FIGURE 2  (report section 4) - BITS Prayogshala environment stack and node quota
+      Command/source: Browser: the Prayogshala 'Big Data Systems' page (the screen you already shared).
+      Capture       : Environment stack chips + 3 nodes with quota (do this BEFORE you start so consumed time is visible).
+
+[ ] FIGURE 3  (report section 4) - Environment check output (daemons, versions)
+      Command/source: cd scripts && bash 00_check_env.sh
+      Capture       : jps list, MongoDB version, Spark version, python libraries, hostname/date.
+
+[ ] FIGURE 4  (report section 4) - Project folder uploaded on the lab machine
+      Command/source: ls -R ~/fraudlens-mongo-spark-hybrid | head -50   (and: ls -lh data/)
+      Capture       : Folder tree and the size of data/fraud_tx.jsonl.gz.
+
+[ ] FIGURE 5  (report section 5) - Data preparation / enrichment summary (laptop)
+      Command/source: python 02_prepare_sample_and_enrich.py --input ../data/PS_20174392719_1491204439457_log.csv
+      Capture       : Raw rows, frauds, rows kept, output file size. (Run on laptop - terminal screenshot.)
+
+[ ] FIGURE 6  (report section 5) - Loading documents into MongoDB
+      Command/source: cd scripts && python3 03_load_to_mongodb.py
+      Capture       : Insert count, indexes created, LOAD SUMMARY block at the end.
+
+[ ] FIGURE 7  (report section 5) - A sample nested transaction document
+      Command/source: mongosh fraudlens --eval 'printjson(db.transactions.findOne({is_fraud:1}))'
+      Capture       : Whole JSON document showing origin{}, dest{}, device{}, location{}, tags[].
+
+[ ] FIGURE 8  (report section 6) - Q1 / Q2 - Fraud rate by transaction type and merchant category
+      Command/source: mongosh "mongodb://localhost:27017/fraudlens" --file 04_mongo_aggregations.js   (scroll to Q1, Q2)
+      Capture       : Q1 and Q2 headings with their output and runtime.
+
+[ ] FIGURE 9  (report section 6) - Q3 - $bucket amount bands
+      Command/source: same run as above (Q3 block)
+      Capture       : Q3 heading + bucket output.
+
+[ ] FIGURE 10  (report section 6) - Q4 - $setWindowFields rolling 24h device window
+      Command/source: same run as above (Q4a, Q4b)
+      Capture       : Q4a and Q4b output with runtime.
+
+[ ] FIGURE 11  (report section 6) - Q5 - $lookup join and $merge-built devices collection
+      Command/source: same run as above (Q5a, Q5b)
+      Capture       : Q5a and Q5b output.
+
+[ ] FIGURE 12  (report section 6) - Q6 - $graphLookup fraud money chains
+      Command/source: same run as above (Q6)
+      Capture       : Q6 output showing chain_length / chain_tx_ids.
+
+[ ] FIGURE 13  (report section 6) - Q7 / Q8 - Geospatial query and daily trend
+      Command/source: same run as above (Q7, Q7b, Q8)
+      Capture       : Q7, Q7b, Q8 output.
+
+[ ] FIGURE 14  (report section 6) - Q9 - Index scan vs collection scan (explain)
+      Command/source: same run as above (Q9 at the very end)
+      Capture       : Both lines: time, docsExamined, keysExamined.
+
+[ ] FIGURE 15  (report section 7) - PySpark reads nested documents from MongoDB
+      Command/source: cd scripts && bash run_spark.sh 05_pyspark_eda_features.py
+      Capture       : Line '>>> Read via Mongo-Spark Connector <<<' (or fallback line) + the nested printSchema().
+
+[ ] FIGURE 16  (report section 7) - Flattened schema and window features
+      Command/source: same run (FLATTENED SCHEMA and SAMPLE WITH WINDOW FEATURES sections)
+      Capture       : Flattened printSchema and the table sorted by device_tx_24h.
+
+[ ] FIGURE 17  (report section 7) - EDA tables (by type, fraud vs normal, by hour)
+      Command/source: same run (EDA 1, EDA 2, EDA 3)
+      Capture       : The three result tables.
+
+[ ] FIGURE 18  (report section 8) - MLlib training results - Random Forest vs GBT
+      Command/source: cd scripts && bash run_spark.sh 06_pyspark_ml_pipeline.py
+      Capture       : JSON metrics of both models and the 'Best model' line.
+
+[ ] FIGURE 19  (report section 8) - Confusion matrices
+      Command/source: same run (Confusion matrix lines for each model)
+      Capture       : TN/FP/FN/TP for both models.
+
+[ ] FIGURE 20  (report section 8) - Feature importance
+      Command/source: same run (TOP 10 FEATURE IMPORTANCES) or plot in dashboard_3_model.png
+      Capture       : Top-10 list or the bar chart.
+
+[ ] FIGURE 21  (report section 9) - Predictions written back to MongoDB
+      Command/source: mongosh fraudlens --eval 'printjson(db.fraud_predictions.find({},{_id:0}).sort({fraud_score:-1}).limit(5).toArray()); print(db.fraud_predictions.countDocuments())'
+      Capture       : Top-5 highest scores + total count.
+
+[ ] FIGURE 22  (report section 10) - Mongo vs Spark timing results
+      Command/source: cd scripts && bash run_spark.sh 07_compare_mongo_vs_spark.py   (also paste outputs/compare_mongo_vs_spark.png)
+      Capture       : The results table (MONGO vs SPARK block) and/or the bar chart.
+
+[ ] FIGURE 23  (report section 10) - Spark UI / YARN UI showing the jobs
+      Command/source: While a Spark script runs open http://<node>:4040 (or the YARN ResourceManager UI if you used SPARK_MASTER=yarn)
+      Capture       : Jobs / Stages page with a job list and durations.
+
+[ ] FIGURE 24  (report section 11) - Dashboard - overview
+      Command/source: python3 08b_dashboard_static.py -> open outputs/dashboard_1_overview.png   (or the Streamlit 'Overview' tab)
+      Capture       : KPIs + type / category / amount-band charts.
+
+[ ] FIGURE 25  (report section 11) - Dashboard - geo and time
+      Command/source: outputs/dashboard_2_geo_time.png (or the Streamlit 'Geo & Time' tab)
+      Capture       : Daily trend + fraud location scatter/map.
+
+[ ] FIGURE 26  (report section 11) - Dashboard - model results
+      Command/source: outputs/dashboard_3_model.png (or the Streamlit 'ML Model' tab)
+      Capture       : Model metrics + feature importance.

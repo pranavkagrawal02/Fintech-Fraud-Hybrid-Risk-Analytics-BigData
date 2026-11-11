@@ -1,0 +1,206 @@
+Step-by-Step Plan - Assignment 2 (Big Data Systems, CC ZG522)
+
+Project: FraudLens - Fintech fraud & geospatial risk analytics (Scenario 6, Track C hybrid: MongoDB + PySpark)
+Deadline: Nov 15, 2026 (check the portal for the exact cut-off time). Today is Nov 11, so you have 4 days.
+
+The idea: do everything that does NOT need the lab (download, sampling, enrichment, report writing) on your
+laptop, and use the lab only for running the prepared scripts and taking screenshots.
+
+--------------------------------------------------------------------------------------------------------------
+
+0. Suggested schedule
+
+  --------------------------------------------------------------------------------------------------------------
+  Day                                  What                                 Where
+  ------------------------------------ ------------------------------------ ------------------------------------
+  Wed Nov 11 (today)                   Download dataset, run data-prep      Laptop
+                                       script, zip the folder, read this    
+                                       plan                                 
+
+  Thu Nov 12                           Lab session 1: upload folder, env    Lab
+                                       check, load MongoDB, run Mongo       
+                                       queries (Figures 2-14)               
+
+  Fri Nov 13                           Lab session 2: PySpark EDA, ML,      Lab
+                                       write-back, Mongo-vs-Spark timing    
+                                       (Figures 15-23)                      
+
+  Sat Nov 14                           Dashboard screenshots (24-26), paste Lab + laptop
+                                       all screenshots into the report,     
+                                       push to GitHub, submit               
+
+  Sun Nov 15                           Buffer. Do not plan to use it.       -
+  --------------------------------------------------------------------------------------------------------------
+
+You can also do all lab steps in ONE session with bash run_all.sh (about 10-25 minutes of compute). Your quota
+is 22 h per node, so quota is not the problem - your own time is.
+
+--------------------------------------------------------------------------------------------------------------
+
+1. On your laptop (about 30 minutes)
+
+1.1 Download the dataset
+
+Kaggle needs a free login. Open: https://www.kaggle.com/datasets/ealaxi/paysim1 -> Download. Unzip and you get
+PS_20174392719_1491204439457_log.csv (about 6.36 million rows, roughly 470 MB). Put it in the data/ folder.
+
+Command-line alternative (if you have the Kaggle CLI configured):
+
+    kaggle datasets download -d ealaxi/paysim1
+
+Cannot download? Skip to step 1.3 and use --synthetic.
+
+1.2 Install the two libraries needed on the laptop
+
+    pip install pandas numpy
+
+1.3 Create the small enriched sample (this is what you upload to the lab)
+
+    cd scripts
+    python 02_prepare_sample_and_enrich.py --input ../data/PS_20174392719_1491204439457_log.csv
+
+No Kaggle file? Use:
+
+    python 02_prepare_sample_and_enrich.py --synthetic
+
+Result: data/fraud_tx.jsonl.gz (roughly 20-30 MB, 300,000 nested documents, all frauds kept). Use
+--rows 500000 for more data. Take Screenshot Figure 5 now (the terminal summary).
+
+1.4 Pack the folder for upload
+
+Move the raw CSV out of the folder first (it is 470 MB and not needed in the lab). Then zip the whole folder:
+
+    zip -r fraudlens.zip fraudlens-mongo-spark-hybrid
+
+(On Windows: right-click the folder -> Send to -> Compressed (zipped) folder.)
+
+--------------------------------------------------------------------------------------------------------------
+
+2. In the Prayogshala lab
+
+2.1 Start the session and take Figure 2
+
+Open the Big Data Systems page, make sure the quota still shows ~0m consumed, and screenshot the environment
+stack and node quota. This is Figure 2.
+
+2.2 Upload the zip
+
+Use whichever upload / file-transfer option Prayogshala gives you (web file upload, scp/SFTP, or git clone if
+the lab has internet and you pushed the repo with the data file). I do not know the exact upload screen of the
+lab - check its help page or ask your TA. Then:
+
+    unzip fraudlens.zip
+    cd fraudlens-mongo-spark-hybrid/scripts
+    ls -R .. | head -50         # Figure 4
+
+2.3 Check the environment (Figure 3)
+
+    bash 00_check_env.sh
+
+Read the output: which node shows MongoDB and Spark daemons in jps, the MongoDB version (needs 5.0+ for
+$setWindowFields), the Spark version, and which Python libraries are MISSING. Run the Mongo-related steps on
+the node that has MongoDB running (the lab list shows “MongoDB (Master)” on Node 1). If a library is missing:
+bash 01_setup_python_env.sh.
+
+2.4 Load data into MongoDB (Figures 6, 7)
+
+    python3 03_load_to_mongodb.py
+    mongosh fraudlens --eval 'printjson(db.transactions.findOne({is_fraud:1}))'
+
+If MongoDB is not on this node’s localhost: export MONGO_URI="mongodb://<mongo-host>:27017" first.
+
+2.5 Run the MongoDB aggregation analytics (Figures 8-14)
+
+    mongosh "mongodb://localhost:27017/fraudlens" --file 04_mongo_aggregations.js | tee ../outputs/mongo_queries.txt
+
+Scroll through the output and take the screenshots listed in docs/SCREENSHOT_CHECKLIST.md (Q1/Q2, Q3, Q4, Q5,
+Q6, Q7/Q8, Q9).
+
+2.6 Run the PySpark steps (Figures 15-23)
+
+    bash run_spark.sh 05_pyspark_eda_features.py        # Figures 15, 16, 17
+    bash run_spark.sh 06_pyspark_ml_pipeline.py         # Figures 18, 19, 20 and writes fraud_predictions to MongoDB
+    mongosh fraudlens --eval 'printjson(db.fraud_predictions.find({},{_id:0}).sort({fraud_score:-1}).limit(5).toArray())'   # Figure 21
+    bash run_spark.sh 07_compare_mongo_vs_spark.py      # Figure 22
+
+While one of these is running, open the Spark UI (http://<node>:4040) for Figure 23. Look for the line
+>>> Read via Mongo-Spark Connector <<<. If you see the pymongo fallback line instead, the connector jar could
+not be downloaded - see docs/TROUBLESHOOTING.md. Your project still works, and you tick the “fallback” box in
+section 7.1 of the report.
+
+Optional (bonus for “two-node cluster” outcome): run on YARN instead of local:
+SPARK_MASTER=yarn MONGO_URI=mongodb://<node1-hostname>:27017 bash run_spark.sh 06_pyspark_ml_pipeline.py If it
+errors, go back to local - do not lose time on it.
+
+2.7 Dashboard (Figures 24-26)
+
+Always works (no browser needed):
+
+    python3 08b_dashboard_static.py
+
+Open outputs/dashboard_1_overview.png, dashboard_2_geo_time.png, dashboard_3_model.png and screenshot /
+download them. Interactive version (only if you can open the port from your browser):
+
+    streamlit run 08_dashboard_streamlit.py --server.port 8501 --server.address 0.0.0.0
+
+2.8 Bring results back
+
+Download the whole outputs/ folder (logs, CSVs, PNGs, metrics.json) to your laptop. Keep it - even if the lab
+loses your files, you can still write the report.
+
+--------------------------------------------------------------------------------------------------------------
+
+3. Finish the report (laptop, about 2-3 hours)
+
+1.  Open report/Assignment2_Report_Template.docx.
+2.  Fill the cover page, delete the yellow instruction box.
+3.  Click in each dashed box and paste the matching screenshot (Figure numbers match the checklist).
+4.  Write 2-3 sentences under every “Observation / inference” line using YOUR output.
+5.  Fill the metrics table (section 8) from outputs/metrics.json, the timing table (section 10) from
+    outputs/compare_results.csv, and the index table (section 6.7) from Q9.
+6.  Write the discussion in sections 8, 10 and 12 in your own words. The comparison of compute placement
+    (section 10) is the main idea the assignment tests - spend time there.
+7.  Edit the pre-written paragraphs so they match exactly what you did (for example connector vs fallback,
+    local vs yarn).
+8.  Export to PDF if the portal asks for PDF (Word: File -> Save As -> PDF).
+
+Mapping to the assignment’s learning outcomes (use as your self-check)
+
+  Learning outcome                                 Where it is covered
+  ------------------------------------------------ -----------------------------------------------------------
+  Apply NoSQL / MongoDB for the scenario           Sections 5, 6 (Figures 6-14)
+  Apply big-data infrastructure / multi-node lab   Section 4 (Figures 2-4, 23)
+  Demonstrate ML with Spark / PySpark              Sections 7, 8 (Figures 15-20)
+  Integrate Python programs and MongoDB            pymongo loader, connector, write-back (Figures 6, 15, 21)
+  Generate dashboards and analytical reports       Section 11 (Figures 24-26)
+  Present technical findings professionally        The report itself, sections 10 and 12
+
+--------------------------------------------------------------------------------------------------------------
+
+4. GitHub repository
+
+Suggested repository name: fraudlens-mongo-spark-hybrid
+
+    cd fraudlens-mongo-spark-hybrid
+    git init
+    git add .
+    git commit -m "Assignment 2: hybrid MongoDB + Spark fraud analytics"
+    git branch -M main
+    git remote add origin https://github.com/<your-username>/fraudlens-mongo-spark-hybrid.git
+    git push -u origin main
+
+.gitignore already excludes the 470 MB CSV, the data sample and the outputs. If you want the repo to be
+runnable, remove the data/*.gz line from .gitignore (the sample is small enough for GitHub). Put the repo link
+on the report cover page and in Appendix A.
+
+--------------------------------------------------------------------------------------------------------------
+
+5. Final checklist before submitting
+
+-   ☐ All 26 figures pasted, no empty dashed boxes left
+-   ☐ Name, BITS ID, date, GitHub link filled
+-   ☐ Yellow instruction box and grey hint text deleted
+-   ☐ Metrics, timing and index tables filled with YOUR numbers
+-   ☐ Statement about synthetic enrichment fields is present (section 3)
+-   ☐ Limitations section edited to reflect what actually happened
+-   ☐ File name follows whatever the portal requires (check the assignment portal)

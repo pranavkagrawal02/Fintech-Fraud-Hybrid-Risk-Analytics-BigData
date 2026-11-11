@@ -1,0 +1,9 @@
+# raw Kaggle CSV is ~470 MB - never commit it
+data/*.csv
+data/*.gz
+data/*.zip
+outputs/*
+!outputs/.gitkeep
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

@@ -1,0 +1,31 @@
+# Dataset Links
+
+## Primary dataset (used by this project)
+
+**Synthetic Financial Datasets For Fraud Detection (PaySim)** on Kaggle
+https://www.kaggle.com/datasets/ealaxi/paysim1
+
+- Needs a free Kaggle login to download.
+- File inside the zip: `PS_20174392719_1491204439457_log.csv` (about 6.36 million rows, 11 columns, roughly 470 MB).
+- Columns: `step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud`.
+- `step` = 1 hour of simulated time (744 steps = 30 days). Types: CASH-IN, CASH-OUT, DEBIT, PAYMENT, TRANSFER.
+- Fraud only appears in TRANSFER and CASH-OUT. Fraud share in the raw file is about 0.13%.
+- Important note from the dataset authors: fraudulent transactions are cancelled, so the balance columns must not be used as fraud-detection features. This project follows that.
+
+Paper to cite: E. A. Lopez-Rojas, A. Elmir, S. Axelsson, "PaySim: A financial mobile money simulator for fraud detection", 28th European Modeling and Simulation Symposium (EMSS), Larnaca, Cyprus, 2016.
+
+Command-line download (optional, needs the Kaggle CLI and an API token):
+```
+kaggle datasets download -d ealaxi/paysim1
+unzip paysim1.zip
+```
+
+## If you cannot download from Kaggle
+Run the data-prep script with the `--synthetic` flag. It generates a PaySim-like dataset (same columns, similar fraud pattern including TRANSFER -> CASH-OUT chains) and then applies the same enrichment. The assignment explicitly allows synthetic data, but say so in your report.
+```
+python 02_prepare_sample_and_enrich.py --synthetic --rows 300000
+```
+
+## Other pages used when writing this plan
+- Assignment brief (your PDF): ASSIGNMENT-2-BDS-12-10-2026.pdf
+- Lab portal: https://prayogshala.bits-pilani.ac.in/auth/login
